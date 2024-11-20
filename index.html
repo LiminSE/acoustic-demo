@@ -1,252 +1,303 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>建筑声学演示工具</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 10px, #ffffff 10px, #ffffff 20px);
             margin: 0;
             padding: 0;
-            color: #333;
-        }
-
-        h1 {
-            text-align: center;
-            color: #004080;
-            margin: 20px 0;
-            font-size: 2em;
-            text-shadow: 2px 2px #d9e3f0;
-        }
-
-        #description {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin: 20px;
-            text-align: center;
+            flex-direction: column;
+            align-items: center;
+            background-color: #e0f7f7;
         }
 
-        .desc-item {
-            flex: 1 1 calc(25% - 20px);
-            min-width: 150px;
+        #levelBarContainer {
+            position: relative;
+            width: 90%;
+            height: 50px;
+            background-color: #b2e0e0;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
         }
 
-        .desc-item img {
-            width: 80px;
-            height: 80px;
+        #levelBar {
+            position: absolute;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #39c5bb, #7ed3d3);
+            border-radius: 25px;
+            box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
 
-        #controls {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin: 20px 10px;
-        }
-
-        button {
-            background-color: #004080;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1em;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: #0066cc;
+        .levelValue {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 16px;
+            color: #39c5bb;
         }
 
         .chart-container {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            padding: 10px;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
         }
 
         canvas {
-            background-color: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            background-color: #f0f0f0;
+            margin-bottom: 20px;
         }
 
-        #qr {
+        .description {
+            margin: 20px;
             text-align: center;
-            margin-top: 20px;
+            color: #39c5bb;
         }
 
-        /* PC端布局优化 */
-        @media (min-width: 768px) {
-            #description {
-                justify-content: space-between;
-            }
-
-            #controls {
-                justify-content: space-between;
-            }
-
-            .chart-container {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: space-between;
-            }
-
-            canvas {
-                width: calc(45% - 20px);
-            }
+        .button-container {
+            margin: 20px;
         }
 
-        /* 移动端布局优化 */
-        @media (max-width: 767px) {
-            h1 {
-                font-size: 1.5em;
-            }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            background-color: #39c5bb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-            #controls {
-                flex-direction: column;
-                gap: 10px;
-            }
+        button:hover {
+            background-color: #7ed3d3;
+        }
 
-            button {
-                padding: 15px;
-                font-size: 1.2em;
-            }
+        .active-chart {
+            display: block !important;
+        }
 
-            .chart-container {
-                flex-direction: column;
-            }
-
-            canvas {
-                width: 90%;
-            }
+        .hidden-chart {
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <h1>建筑声学演示工具</h1>
+    <p class="description">此工具用于实时监测音频输入，您可以通过以下图表了解音频的频谱和电平信息。</p>
 
-    <!-- 图表说明 -->
-    <div id="description">
-        <div class="desc-item">
-            <img src="https://via.placeholder.com/80?text=电平" alt="电平图">
-            <p>电平：实时显示声音的强度</p>
-        </div>
-        <div class="desc-item">
-            <img src="https://via.placeholder.com/80?text=波形" alt="波形图">
-            <p>波形：显示声音信号的波动</p>
-        </div>
-        <div class="desc-item">
-            <img src="https://via.placeholder.com/80?text=频谱" alt="频谱图">
-            <p>频谱：分析声音的频率分布</p>
-        </div>
-        <div class="desc-item">
-            <img src="https://via.placeholder.com/80?text=声场" alt="声场图">
-            <p>声场：显示声音的空间分布</p>
-        </div>
+    <!-- 电平横条 -->
+    <div id="levelBarContainer">
+        <div id="levelBar"></div>
+        <div id="levelValue" class="levelValue">0%</div>
     </div>
 
-    <!-- 控制按钮 -->
-    <div id="controls">
-        <button id="start">开始采集</button>
-        <button id="stop" disabled>停止采集</button>
+    <!-- 图表切换按钮 -->
+    <div class="button-container">
+        <button onclick="switchChart('halfCircleField')">半圆声场图</button>
+        <button onclick="switchChart('squareField')">正方形声场图</button>
+        <button onclick="switchChart('linearHalfCircleField')">线性半圆图</button>
+        <button onclick="switchChart('spectrumChart')">频谱图</button>
+        <button onclick="switchChart('vuChart')">VU 表</button>
     </div>
 
-    <!-- 图表 -->
+    <!-- 图表容器 -->
     <div class="chart-container">
-        <canvas id="levelChart" width="400" height="300"></canvas>
-        <canvas id="waveformChart" width="400" height="300"></canvas>
-        <canvas id="spectrumChart" width="400" height="300"></canvas>
-        <canvas id="vuChart" width="400" height="300"></canvas>
+        <canvas id="halfCircleField" class="active-chart" width="400" height="200"></canvas>
+        <canvas id="squareField" class="hidden-chart" width="400" height="400"></canvas>
+        <canvas id="linearHalfCircleField" class="hidden-chart" width="400" height="150"></canvas>
+        <canvas id="spectrumChart" class="hidden-chart" width="600" height="200"></canvas>
+        <canvas id="vuChart" class="hidden-chart" width="300" height="150"></canvas>
     </div>
 
-    <!-- 二维码 -->
-    <div id="qr">
-        <p>扫描以下二维码访问此网页：</p>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://你的GitHub用户名.github.io/你的仓库名/" alt="QR Code">
-    </div>
+    <div id="chartDescription" class="description"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // 与之前相同的 JavaScript 代码，保持功能不变
-        let audioContext, analyser, microphone, dataArray, animationId;
-
-        const levelChartCtx = document.getElementById('levelChart').getContext('2d');
-        const waveformChartCtx = document.getElementById('waveformChart').getContext('2d');
-        const spectrumChartCtx = document.getElementById('spectrumChart').getContext('2d');
-        const vuChartCtx = document.getElementById('vuChart').getContext('2d');
-
-        const levelChart = new Chart(levelChartCtx, {
-            type: 'bar',
-            data: { labels: ['电平'], datasets: [{ label: 'dB', data: [0], backgroundColor: '#004080' }] },
-            options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-
-        const waveformChart = new Chart(waveformChartCtx, {
-            type: 'line',
-            data: { labels: Array(512).fill(''), datasets: [{ label: '波形', data: Array(512).fill(0), borderColor: '#004080', tension: 0.2 }] },
-            options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-
-        const spectrumChart = new Chart(spectrumChartCtx, {
-            type: 'bar',
-            data: { labels: Array.from({ length: 256 }, (_, i) => i), datasets: [{ label: '频谱', data: Array(256).fill(0), backgroundColor: '#004080' }] },
-            options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-
-        const vuChart = new Chart(vuChartCtx, {
-            type: 'radar',
-            data: { labels: ['前', '右', '后', '左'], datasets: [{ label: '声场', data: [0, 0, 0, 0], backgroundColor: 'rgba(0, 64, 128, 0.5)' }] },
-            options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-
-        document.getElementById('start').addEventListener('click', async () => {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 1024;
-            dataArray = new Uint8Array(analyser.frequencyBinCount);
-
+        async function startMicrophone() {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            microphone = audioContext.createMediaStreamSource(stream);
-            microphone.connect(analyser);
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioContext.createAnalyser();
+            const source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyser);
+            analyser.fftSize = 256;
+            return analyser;
+        }
 
-            animationId = requestAnimationFrame(updateCharts);
-            document.getElementById('start').disabled = true;
-            document.getElementById('stop').disabled = false;
+        let analyser;
+        const bufferLength = 128;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const charts = document.querySelectorAll('canvas');
+        const halfCircleField = document.getElementById('halfCircleField').getContext('2d');
+        const squareField = document.getElementById('squareField').getContext('2d');
+        const linearHalfCircleField = document.getElementById('linearHalfCircleField').getContext('2d');
+
+        const spectrumCtx = document.getElementById('spectrumChart').getContext('2d');
+        const vuCtx = document.getElementById('vuChart').getContext('2d');
+
+        const spectrumChart = new Chart(spectrumCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: bufferLength }, (_, i) => i),
+                datasets: [{
+                    label: '频谱',
+                    data: Array(bufferLength).fill(0),
+                    borderColor: '#39c5bb',
+                    backgroundColor: 'rgba(57, 197, 187, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: { x: { display: false }, y: { beginAtZero: true } }
+            }
         });
 
-        document.getElementById('stop').addEventListener('click', () => {
-            cancelAnimationFrame(animationId);
-            audioContext.close();
-            document.getElementById('start').disabled = false;
-            document.getElementById('stop').disabled = true;
+        const vuChart = new Chart(vuCtx, {
+            type: 'bar',
+            data: {
+                labels: ['左声道', '右声道'],
+                datasets: [{
+                    label: 'VU 表',
+                    data: [0, 0],
+                    backgroundColor: ['#39c5bb', '#7ed3d3'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: { x: { display: false }, y: { beginAtZero: true } }
+            }
         });
+
+        function drawHalfCircleField(dataArray) {
+            halfCircleField.clearRect(0, 0, 400, 200);
+
+            const particleCount = 50;
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (Math.PI * i) / particleCount;
+                const radius = (dataArray[i] / 256) * 90 + 20;
+                const x = 200 + Math.cos(angle) * radius;
+                const y = 180 - Math.sin(angle) * radius;
+                halfCircleField.fillStyle = `rgba(57, 197, 187, 0.7)`;
+                halfCircleField.beginPath();
+                halfCircleField.arc(x, y, 4, 0, Math.PI * 2);
+                halfCircleField.fill();
+            }
+
+            // 添加频率标注
+            for (let i = 0; i <= particleCount; i += 10) {
+                const angle = (Math.PI * i) / particleCount;
+                const radius = 100;
+                const x = 200 + Math.cos(angle) * radius;
+                const y = 180 - Math.sin(angle) * radius;
+                const frequency = (i * 200).toFixed(0);
+                halfCircleField.fillStyle = '#000';
+                halfCircleField.font = '12px Arial';
+                halfCircleField.fillText(`${frequency} Hz`, x - 20, y);
+            }
+        }
+
+        function drawSquareField(dataArray) {
+            squareField.clearRect(0, 0, 400, 400);
+            const gridSize = 12;
+            const cellSize = 30;
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const intensity = dataArray[(i * gridSize + j) % dataArray.length] / 256;
+                    squareField.fillStyle = `rgba(57, 197, 187, ${intensity})`;
+                    squareField.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+
+        function drawLinearHalfCircleField(dataArray) {
+            linearHalfCircleField.clearRect(0, 0, 400, 150);
+
+            const barWidth = 10;
+            const maxBarHeight = 120;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 256) * maxBarHeight;
+                const x = (i * 4) + 10;
+                const y = 150 - barHeight;
+                linearHalfCircleField.fillStyle = `rgba(57, 197, 187, 0.8)`;
+                linearHalfCircleField.fillRect(x, y, barWidth, barHeight);
+            }
+        }
 
         function updateCharts() {
-            analyser.getByteTimeDomainData(dataArray);
-            const waveform = Array.from(dataArray);
-            waveformChart.data.datasets[0].data = waveform;
-            waveformChart.update();
-
             analyser.getByteFrequencyData(dataArray);
-            const spectrum = Array.from(dataArray.slice(0, 256));
-            spectrumChart.data.datasets[0].data = spectrum;
+
+            // 更新频谱图
+            spectrumChart.data.datasets[0].data = dataArray.slice(0, 128);
             spectrumChart.update();
 
-            const level = Math.max(...dataArray) / 256 * 100;
-            levelChart.data.datasets[0].data = [level];
-            levelChart.update();
-
-            vuChart.data.datasets[0].data = [level / 4, level / 4, level / 4, level / 4];
+            // 更新VU表
+            vuChart.data.datasets[0].data = [Math.max(...dataArray.slice(0, 64)), Math.max(...dataArray.slice(64, 128))];
             vuChart.update();
 
-            animationId = requestAnimationFrame(updateCharts);
+            // 更新电平条
+            const level = Math.max(...dataArray) / 256;
+            document.getElementById('levelBar').style.width = `${level * 100}%`;
+            document.getElementById('levelValue').textContent = `${Math.round(level * 100)}%`;
+
+            drawHalfCircleField(dataArray);
+            drawSquareField(dataArray);
+            drawLinearHalfCircleField(dataArray);
+
+            requestAnimationFrame(updateCharts);
         }
+
+        function switchChart(chartId) {
+            charts.forEach(chart => {
+                if (chart.id === chartId) {
+                    chart.classList.add('active-chart');
+                    chart.classList.remove('hidden-chart');
+                } else {
+                    chart.classList.remove('active-chart');
+                    chart.classList.add('hidden-chart');
+                }
+            });
+
+            // 更新说明
+            let descriptionText = '';
+            switch (chartId) {
+                case 'halfCircleField':
+                    descriptionText = '半圆声场图显示了音频在空间中的分布，通常用于分析声音的方向性和空间感。';
+                    break;
+                case 'squareField':
+                    descriptionText = '正方形声场图展示了频率强度分布的网格，常用于模拟声学空间的热力图。';
+                    break;
+                case 'linearHalfCircleField':
+                    descriptionText = '线性半圆图用于显示频谱的变化，可以帮助理解声音的频率分布。';
+                    break;
+                case 'spectrumChart':
+                    descriptionText = '频谱图展示了不同频率的能量分布，常用于音频处理和调音。';
+                    break;
+                case 'vuChart':
+                    descriptionText = 'VU表用于显示声音的电平强度，广泛应用于音频设备调试和声音监控。';
+                    break;
+                default:
+                    descriptionText = '请选择一个图表进行查看。';
+            }
+            document.getElementById('chartDescription').textContent = descriptionText;
+        }
+
+        startMicrophone()
+            .then((analyserInstance) => {
+                analyser = analyserInstance;
+                updateCharts();
+            })
+            .catch(err => console.error('麦克风访问失败:', err));
     </script>
 </body>
 </html>
