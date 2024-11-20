@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建筑声学演示工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 10px, #ffffff 10px, #ffffff 20px);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #004080;
+            margin: 20px 0;
+            font-size: 2em;
+            text-shadow: 2px 2px #d9e3f0;
+        }
+
+        #description {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .desc-item {
+            flex: 1 1 calc(25% - 20px);
+            min-width: 150px;
+        }
+
+        .desc-item img {
+            width: 80px;
+            height: 80px;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 10px;
+        }
+
+        button {
+            background-color: #004080;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0066cc;
+        }
+
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+        }
+
+        canvas {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #qr {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* PC端布局优化 */
+        @media (min-width: 768px) {
+            #description {
+                justify-content: space-between;
+            }
+
+            #controls {
+                justify-content: space-between;
+            }
+
+            .chart-container {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            canvas {
+                width: calc(45% - 20px);
+            }
+        }
+
+        /* 移动端布局优化 */
+        @media (max-width: 767px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            #controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            button {
+                padding: 15px;
+                font-size: 1.2em;
+            }
+
+            .chart-container {
+                flex-direction: column;
+            }
+
+            canvas {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>建筑声学演示工具</h1>
+
+    <!-- 图表说明 -->
+    <div id="description">
+        <div class="desc-item">
+            <img src="https://via.placeholder.com/80?text=电平" alt="电平图">
+            <p>电平：实时显示声音的强度</p>
+        </div>
+        <div class="desc-item">
+            <img src="https://via.placeholder.com/80?text=波形" alt="波形图">
+            <p>波形：显示声音信号的波动</p>
+        </div>
+        <div class="desc-item">
+            <img src="https://via.placeholder.com/80?text=频谱" alt="频谱图">
+            <p>频谱：分析声音的频率分布</p>
+        </div>
+        <div class="desc-item">
+            <img src="https://via.placeholder.com/80?text=声场" alt="声场图">
+            <p>声场：显示声音的空间分布</p>
+        </div>
+    </div>
+
+    <!-- 控制按钮 -->
+    <div id="controls">
+        <button id="start">开始采集</button>
+        <button id="stop" disabled>停止采集</button>
+    </div>
+
+    <!-- 图表 -->
+    <div class="chart-container">
+        <canvas id="levelChart" width="400" height="300"></canvas>
+        <canvas id="waveformChart" width="400" height="300"></canvas>
+        <canvas id="spectrumChart" width="400" height="300"></canvas>
+        <canvas id="vuChart" width="400" height="300"></canvas>
+    </div>
+
+    <!-- 二维码 -->
+    <div id="qr">
+        <p>扫描以下二维码访问此网页：</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://你的GitHub用户名.github.io/你的仓库名/" alt="QR Code">
+    </div>
+
+    <script>
+        // 与之前相同的 JavaScript 代码，保持功能不变
+        let audioContext, analyser, microphone, dataArray, animationId;
+
+        const levelChartCtx = document.getElementById('levelChart').getContext('2d');
+        const waveformChartCtx = document.getElementById('waveformChart').getContext('2d');
+        const spectrumChartCtx = document.getElementById('spectrumChart').getContext('2d');
+        const vuChartCtx = document.getElementById('vuChart').getContext('2d');
+
+        const levelChart = new Chart(levelChartCtx, {
+            type: 'bar',
+            data: { labels: ['电平'], datasets: [{ label: 'dB', data: [0], backgroundColor: '#004080' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        const waveformChart = new Chart(waveformChartCtx, {
+            type: 'line',
+            data: { labels: Array(512).fill(''), datasets: [{ label: '波形', data: Array(512).fill(0), borderColor: '#004080', tension: 0.2 }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        const spectrumChart = new Chart(spectrumChartCtx, {
+            type: 'bar',
+            data: { labels: Array.from({ length: 256 }, (_, i) => i), datasets: [{ label: '频谱', data: Array(256).fill(0), backgroundColor: '#004080' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        const vuChart = new Chart(vuChartCtx, {
+            type: 'radar',
+            data: { labels: ['前', '右', '后', '左'], datasets: [{ label: '声场', data: [0, 0, 0, 0], backgroundColor: 'rgba(0, 64, 128, 0.5)' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        document.getElementById('start').addEventListener('click', async () => {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 1024;
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            microphone = audioContext.createMediaStreamSource(stream);
+            microphone.connect(analyser);
+
+            animationId = requestAnimationFrame(updateCharts);
+            document.getElementById('start').disabled = true;
+            document.getElementById('stop').disabled = false;
+        });
+
+        document.getElementById('stop').addEventListener('click', () => {
+            cancelAnimationFrame(animationId);
+            audioContext.close();
+            document.getElementById('start').disabled = false;
+            document.getElementById('stop').disabled = true;
+        });
+
+        function updateCharts() {
+            analyser.getByteTimeDomainData(dataArray);
+            const waveform = Array.from(dataArray);
+            waveformChart.data.datasets[0].data = waveform;
+            waveformChart.update();
+
+            analyser.getByteFrequencyData(dataArray);
+            const spectrum = Array.from(dataArray.slice(0, 256));
+            spectrumChart.data.datasets[0].data = spectrum;
+            spectrumChart.update();
+
+            const level = Math.max(...dataArray) / 256 * 100;
+            levelChart.data.datasets[0].data = [level];
+            levelChart.update();
+
+            vuChart.data.datasets[0].data = [level / 4, level / 4, level / 4, level / 4];
+            vuChart.update();
+
+            animationId = requestAnimationFrame(updateCharts);
+        }
+    </script>
+</body>
+</html>
