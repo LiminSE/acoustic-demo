@@ -159,6 +159,13 @@
         </label>
     </div>
 
+    <!-- 开关：开始接收麦克风信号 -->
+    <div class="filter-switch">
+        <label for="microphoneSwitch">
+            <input type="checkbox" id="microphoneSwitch" onchange="toggleMicrophone()"> 开启麦克风
+        </label>
+    </div>
+
     <!-- 频率响应纵轴扩大系数滑杆 -->
     <div class="slider-container">
         <label for="responseScale">模拟音源频率响应纵轴扩大系数:</label>
@@ -210,6 +217,7 @@
         const vuCtx = document.getElementById('vuChart').getContext('2d');
         const responseScaleSlider = document.getElementById('responseScale');
         const scaleValueDisplay = document.getElementById('scaleValue');
+        const microphoneSwitch = document.getElementById('microphoneSwitch');
 
         const spectrumChart = new Chart(spectrumCtx, {
             type: 'line',
@@ -265,13 +273,31 @@
         });
 
         async function startMicrophone() {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            const source = audioContext.createMediaStreamSource(stream);
-            source.connect(analyser);
-            analyser.fftSize = 256;
-            return analyser;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                return analyser;
+            } catch (error) {
+                console.error('麦克风访问失败:', error);
+                alert('请检查浏览器权限设置，确保已允许访问麦克风。');
+            }
+        }
+
+        function toggleMicrophone() {
+            if (microphoneSwitch.checked) {
+                startMicrophone()
+                    .then((analyserInstance) => {
+                        analyser = analyserInstance;
+                        updateCharts();
+                    })
+                    .catch(err => console.error('麦克风访问失败:', err));
+            } else {
+                analyser = null; // 停止接收麦克风信号
+            }
         }
 
         function applyLowFreqFilter(dataArray) {
@@ -421,6 +447,7 @@
         }
 
         function updateCharts() {
+            if (!analyser) return; // 如果没有分析器，则不更新图表
             analyser.getByteFrequencyData(dataArray);
 
             const filteredData = lowFreqFilterCheckbox.checked ? applyLowFreqFilter(dataArray) : dataArray;
@@ -538,12 +565,6 @@
             document.getElementById('chartDescription').innerHTML = descriptionText; // 使用innerHTML以支持HTML标签
         }
 
-        startMicrophone()
-            .then((analyserInstance) => {
-                analyser = analyserInstance;
-                updateCharts();
-            })
-            .catch(err => console.error('麦克风访问失败:', err));
     </script>
 </body>
 </html>
