@@ -123,6 +123,12 @@
             color: #39c5bb;
             font-size: 14px;
         }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -149,13 +155,13 @@
     <!-- 开关：截取10Hz以下频率 -->
     <div class="filter-switch">
         <label for="lowFreqFilter">
-            <input type="checkbox" id="lowFreqFilter"> **截取10Hz以下频率（便于更好地观察频谱）**
+            <input type="checkbox" id="lowFreqFilter"> 截取10Hz以下频率（便于更好地观察频谱）
         </label>
     </div>
 
     <!-- 频率响应纵轴扩大系数滑杆 -->
     <div class="slider-container">
-        <label for="responseScale">**模拟音源频率响应纵轴扩大系数:**</label>
+        <label for="responseScale">模拟音源频率响应纵轴扩大系数:</label>
         <input type="range" id="responseScale" class="slider" min="1" max="10" value="1" step="0.1" onchange="updateResponseScale()">
         <span id="scaleValue">1</span>
     </div>
@@ -185,6 +191,8 @@
     </div>
 
     <div id="chartDescription" class="description"></div>
+
+    <div class="footer">Lmse Present 2024</div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
