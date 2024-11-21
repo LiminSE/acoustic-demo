@@ -12,9 +12,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-image: url('https://path-to-your-comic-background.jpg'); /* 替换为漫画网店风格背景图片 */
-            background-size: cover;
-            background-position: center;
+            background-image: 
+                linear-gradient(135deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%, rgba(255, 255, 255, 0.1)),
+                linear-gradient(225deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%, rgba(255, 255, 255, 0.1));
+            background-size: 40px 40px;
             color: #333;
         }
 
@@ -22,10 +23,10 @@
             position: relative;
             width: 90%;
             height: 50px;
-            background-color: #b2e0e0;
-            border-radius: 25px;
+            background-color: rgba(178, 224, 224, 0.8);
+            border-radius: 30px;
             overflow: hidden;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
             margin: 20px auto;
         }
 
@@ -34,28 +35,8 @@
             height: 100%;
             width: 0%;
             background: linear-gradient(to right, #39c5bb, #7ed3d3);
-            border-radius: 25px;
-            box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        #audioProgressContainer {
-            position: relative;
-            width: 90%;
-            height: 20px;
-            background-color: #b2e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            margin: 20px auto;
-        }
-
-        #audioProgress {
-            position: absolute;
-            height: 100%;
-            width: 0%;
-            background: orange; /* 橙色表示音乐播放进度 */
-            border-radius: 10px;
-            box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 30px;
+            box-shadow: inset 0px 0px 15px rgba(0, 0, 0, 0.2);
         }
 
         .levelValue {
@@ -74,9 +55,9 @@
         }
 
         canvas {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            background-color: #f0f0f0;
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            background-color: rgba(240, 240, 240, 0.9);
             margin-bottom: 20px;
         }
 
@@ -84,6 +65,13 @@
             margin: 20px;
             text-align: center;
             color: #39c5bb;
+            line-height: 1.6; /* 增加行距 */
+        }
+
+        .reference {
+            color: gray; /* 参考文献颜色 */
+            font-style: italic; /* 斜体 */
+            line-height: 1.6; /* 增加行距 */
         }
 
         .button-container {
@@ -96,12 +84,15 @@
             background-color: #39c5bb;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 15px;
             cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s, transform 0.2s;
         }
 
         button:hover {
             background-color: #7ed3d3;
+            transform: translateY(-2px);
         }
 
         .active-chart {
@@ -116,10 +107,21 @@
             margin: 20px;
         }
 
-        .time-display {
-            font-size: 16px;
+        /* 新增滑杆样式 */
+        .slider-container {
+            margin: 20px;
+            text-align: center;
+        }
+
+        .slider {
+            width: 300px;
+        }
+
+        .sound-description {
+            margin: 20px;
+            text-align: center;
             color: #39c5bb;
-            margin: 10px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -127,29 +129,35 @@
     <h1>建筑声学演示工具</h1>
     <p class="description">此工具用于实时监测音频输入，您可以通过以下图表了解音频的频谱和电平信息。</p>
 
-    <!-- 上传音源 -->
+    <!-- 音源选择 -->
     <div class="filter-switch">
-        <label for="audioUpload">上传音源:</label>
-        <input type="file" id="audioUpload" accept="audio/mp3" onchange="loadUploadedAudio()">
+        <label for="soundSource">选择音源:</label>
+        <select id="soundSource" onchange="updateSoundSource()">
+            <option value="none">请选择</option>
+            <option value="stream">溪流</option>
+            <option value="music">音乐</option>
+            <option value="fountain">喷泉</option>
+            <option value="windChime">风铃</option>
+            <option value="birdSong">鸟叫</option>
+            <option value="backgroundNoise">背景噪声</option>
+            <option value="traffic">车行道声音</option>
+        </select>
     </div>
 
-    <!-- 音量控制 -->
-    <div class="filter-switch">
-        <label for="volumeControl">音量:</label>
-        <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="1" onchange="setVolume()">
-    </div>
-
-    <!-- 上传音源响度控制 -->
-    <div class="filter-switch">
-        <label for="uploadedVolumeControl">上传音源响度:</label>
-        <input type="range" id="uploadedVolumeControl" min="0" max="1" step="0.01" value="1" onchange="setUploadedVolume()">
-    </div>
+    <div id="soundDescription" class="sound-description"></div>
 
     <!-- 开关：截取10Hz以下频率 -->
     <div class="filter-switch">
         <label for="lowFreqFilter">
-            <input type="checkbox" id="lowFreqFilter"> 截取10Hz以下频率（便于更好地观察频谱）
+            <input type="checkbox" id="lowFreqFilter"> **截取10Hz以下频率（便于更好地观察频谱）**
         </label>
+    </div>
+
+    <!-- 频率响应纵轴扩大系数滑杆 -->
+    <div class="slider-container">
+        <label for="responseScale">**模拟音源频率响应纵轴扩大系数:**</label>
+        <input type="range" id="responseScale" class="slider" min="1" max="10" value="1" step="0.1" onchange="updateResponseScale()">
+        <span id="scaleValue">1</span>
     </div>
 
     <!-- 电平横条 -->
@@ -158,21 +166,11 @@
         <div id="levelValue" class="levelValue">0%</div>
     </div>
 
-    <!-- 音乐播放进度条 -->
-    <div id="audioProgressContainer">
-        <div id="audioProgress"></div>
-    </div>
-
-    <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
-
     <!-- 图表切换按钮 -->
     <div class="button-container">
         <button onclick="switchChart('halfCircleField')">极坐标声场分布图</button>
-        <button onclick="switchChart('halfCircleFieldUploaded')">上传音源极坐标声场分布图</button>
         <button onclick="switchChart('squareField')">网格化声场分布图</button>
-        <button onclick="switchChart('squareFieldUploaded')">上传音源网格化声场分布图</button>
         <button onclick="switchChart('linearHalfCircleField')">频谱线性分布图</button>
-        <button onclick="switchChart('linearHalfCircleFieldUploaded')">上传音源频谱线性分布图</button>
         <button onclick="switchChart('spectrumChart')">频率响应图</button>
         <button onclick="switchChart('vuChart')">音频电平表</button>
     </div>
@@ -180,43 +178,30 @@
     <!-- 图表容器 -->
     <div class="chart-container">
         <canvas id="halfCircleField" class="active-chart" width="400" height="200"></canvas>
-        <canvas id="halfCircleFieldUploaded" class="hidden-chart" width="400" height="200"></canvas>
         <canvas id="squareField" class="hidden-chart" width="400" height="400"></canvas>
-        <canvas id="squareFieldUploaded" class="hidden-chart" width="400" height="400"></canvas>
         <canvas id="linearHalfCircleField" class="hidden-chart" width="400" height="150"></canvas>
-        <canvas id="linearHalfCircleFieldUploaded" class="hidden-chart" width="400" height="150"></canvas>
         <canvas id="spectrumChart" class="hidden-chart" width="600" height="200"></canvas>
         <canvas id="vuChart" class="hidden-chart" width="300" height="150"></canvas>
     </div>
 
     <div id="chartDescription" class="description"></div>
 
-    <audio id="uploadedAudio" loop>
-        <source src="audio/simulated_sound.mp3" type="audio/mpeg">
-        您的浏览器不支持音频元素。
-    </audio>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let analyser;
-        const bufferLength = 64; // 降低采样频率
+        const bufferLength = 128;
         const dataArray = new Uint8Array(bufferLength);
-        const uploadedDataArray = new Uint8Array(bufferLength); // 新增用于存储上传音源的数据
         const lowFreqFilterCheckbox = document.getElementById('lowFreqFilter');
+        const soundSourceSelect = document.getElementById('soundSource');
+        const soundDescription = document.getElementById('soundDescription');
         const charts = document.querySelectorAll('canvas');
         const halfCircleField = document.getElementById('halfCircleField').getContext('2d');
-        const halfCircleFieldUploaded = document.getElementById('halfCircleFieldUploaded').getContext('2d');
         const squareField = document.getElementById('squareField').getContext('2d');
-        const squareFieldUploaded = document.getElementById('squareFieldUploaded').getContext('2d');
         const linearHalfCircleField = document.getElementById('linearHalfCircleField').getContext('2d');
-        const linearHalfCircleFieldUploaded = document.getElementById('linearHalfCircleFieldUploaded').getContext('2d');
         const spectrumCtx = document.getElementById('spectrumChart').getContext('2d');
         const vuCtx = document.getElementById('vuChart').getContext('2d');
-        const uploadedAudio = document.getElementById('uploadedAudio');
-        const volumeControl = document.getElementById('volumeControl');
-        const uploadedVolumeControl = document.getElementById('uploadedVolumeControl');
-        const audioProgress = document.getElementById('audioProgress');
-        const timeDisplay = document.getElementById('timeDisplay');
+        const responseScaleSlider = document.getElementById('responseScale');
+        const scaleValueDisplay = document.getElementById('scaleValue');
 
         const spectrumChart = new Chart(spectrumCtx, {
             type: 'line',
@@ -230,10 +215,10 @@
                     borderWidth: 1
                 },
                 {
-                    label: '上传音源频率响应',
+                    label: '模拟音源频率响应',
                     data: Array(bufferLength).fill(0),
-                    borderColor: 'orange', // 修改为橙色
-                    backgroundColor: 'rgba(255, 165, 0, 0.2)', // 修改为橙色
+                    borderColor: 'orange',
+                    backgroundColor: 'rgba(255, 165, 0, 0.2)',
                     borderWidth: 1
                 }]
             },
@@ -259,13 +244,6 @@
                     label: '音频电平表',
                     data: [0, 0],
                     backgroundColor: ['rgba(57, 197, 187, 0.5)', 'rgba(126, 211, 211, 0.5)'],
-                    borderRadius: 10,
-                    borderWidth: 1
-                },
-                {
-                    label: '上传音源电平',
-                    data: [0, 0], // 新增上传音源电平数据
-                    backgroundColor: 'orange', // 修改为橙色
                     borderRadius: 10,
                     borderWidth: 1
                 }]
@@ -296,68 +274,96 @@
             return filteredData;
         }
 
-        function loadUploadedAudio() {
-            const file = document.getElementById('audioUpload').files[0];
-            if (file) {
-                const url = URL.createObjectURL(file);
-                uploadedAudio.src = url;
-                uploadedAudio.play();
-
-                // 解析上传的音源
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createBufferSource();
-                fetch(url)
-                    .then(response => response.arrayBuffer())
-                    .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                    .then(audioBuffer => {
-                        source.buffer = audioBuffer;
-                        const analyser = audioContext.createAnalyser();
-                        source.connect(analyser);
-                        analyser.connect(audioContext.destination);
-                        source.start();
-
-                        // 获取上传音源的频率数据
-                        const interval = setInterval(() => {
-                            analyser.getByteFrequencyData(uploadedDataArray);
-                            updateCharts();
-                        }, 200); // 增加间隔时间以降低采样频率
-
-                        // 更新音乐播放进度
-                        uploadedAudio.ontimeupdate = function() {
-                            const progress = (uploadedAudio.currentTime / uploadedAudio.duration) * 100;
-                            audioProgress.style.width = `${progress}%`;
-                            const currentTime = formatTime(uploadedAudio.currentTime);
-                            const duration = formatTime(uploadedAudio.duration);
-                            timeDisplay.textContent = `${currentTime} / ${duration}`;
-                        };
-
-                        uploadedAudio.onended = function() {
-                            clearInterval(interval);
-                        };
-                    });
-            }
-        }
-
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        }
-
-        function setVolume() {
-            const volume = volumeControl.value;
-            uploadedAudio.volume = volume; // 动态调节上传音源的响度
-            analyser.getByteFrequencyData(dataArray); // 更新麦克风音源的频率数据
-            updateCharts(); // 更新图表
-        }
-
-        function setUploadedVolume() {
-            const uploadedVolume = uploadedVolumeControl.value;
-            uploadedAudio.volume = uploadedVolume; // 动态调节上传音源的响度
-        }
-
         function updateSoundSource() {
-            // 删除模拟音源的功能
+            const selectedSource = soundSourceSelect.value;
+            const simulatedResponse = new Array(120).fill(0); // 创建一个包含120个数据的数组
+
+            let descriptionText = '';
+            switch (selectedSource) {
+                case 'stream':
+                    // 溪流的频谱特点：低频较弱，中频较强，高频逐渐衰减，带有不规则的随机扰动
+                    descriptionText = '**特点：**以中频为主，低频较弱，高频自然衰减。**说明：**流水的声音主要来源于水流的撞击和涡流，具有中频增强和轻微随机扰动的特点。';
+                    for (let i = 0; i < 120; i++) {
+                        simulatedResponse[i] =
+                            (Math.exp(-i / 50) * (10 + Math.random() * 3 - 1.5)) + 
+                            Math.sin(i / 8) * 2; // 添加轻微起伏
+                    }
+                    break;
+
+                case 'music':
+                    // 音乐的频谱特点：频谱均匀，低频到高频过渡平滑，中低频较强
+                    descriptionText = '**特点：**频谱均匀，低频到高频过渡平滑，中低频较强。**说明：**音乐的频谱特性因乐器和旋律的不同而变化，但通常有较和谐的中低频分量。';
+                    for (let i = 0; i < 120; i++) {
+                        const base = (i < 30 ? 25 - i * 0.5 : 10); // 中低频更强
+                        simulatedResponse[i] =
+                            base * Math.cos(i / 15) + 
+                            (Math.random() * 2 - 1); // 添加随机扰动
+                    }
+                    break;
+
+                case 'fountain':
+                    // 喷泉的频谱特点：中高频显著，频谱呈规律起伏
+                    descriptionText = '**特点：**中高频显著，频谱呈规律起伏。**说明：**水柱和地面的碰撞声主要在中高频范围内，并有轻微的周期性变化。';
+                    for (let i = 0; i < 120; i++) {
+                        simulatedResponse[i] =
+                            (i < 60 ? 5 + Math.sin(i / 10) * 2 : Math.exp(-(i - 60) / 30) * 10) + 
+                            (Math.random() * 1.5 - 0.75);
+                    }
+                    break;
+
+                case 'windChime':
+                    // 风铃的频谱特点：高频明显，中低频极弱，频率间歇性波动
+                    descriptionText = '**特点：**高频明显，中低频极弱，频率间歇性波动。**说明：**风铃的声音由金属或陶瓷材质产生，能量集中在高频段。';
+                    for (let i = 0; i < 120; i++) {
+                        simulatedResponse[i] =
+                            (i > 60 ? Math.random() * 8 + 2 : Math.random() * 3) * 
+                            Math.exp(-Math.abs(i - 60) / 20);
+                    }
+                    break;
+
+                case 'birdSong':
+                    // 鸟叫的频谱特点：中高频占主导，频谱有跳跃性变化
+                    descriptionText = '**特点：**中高频占主导，频谱有跳跃性变化。**说明：**鸟鸣属于自然界的高频音，表现为清脆的声调和不规则的频率变化。';
+                    for (let i = 0; i < 120; i++) {
+                        simulatedResponse[i] =
+                            (Math.random() * 10 + 5) * 
+                            Math.exp(-Math.abs(i - 40) / 20) + 
+                            (Math.random() * 5 - 2.5); // 添加跳跃性随机变化
+                    }
+                    break;
+
+                case 'backgroundNoise':
+                    // 背景噪声的频谱特点：频谱广泛但平缓，能量整体较低
+                    descriptionText = '**特点：**频谱广泛但平缓，能量整体较低。**说明：**背景噪声由多种声音混合而成，频率范围分布较广但没有显著峰值。';
+                    for (let i = 0; i < 120; i++) {
+                        simulatedResponse[i] = 
+                            Math.random() * 5 + 
+                            Math.exp(-i / 60) * 3;
+                    }
+                    break;
+
+                case 'traffic':
+                    // 车行道声音的频谱特点：低频显著，中频次之，高频逐渐衰减
+                    descriptionText = '**特点：**低频显著，中频次之，高频逐渐衰减。**说明：**车辆发动机和轮胎与路面摩擦产生的声音集中在低频和中低频段。';
+                    for (let i = 0; i < 120; i++) {
+                        simulatedResponse[i] = 
+                            (i < 30 ? 15 + Math.sin(i / 5) * 5 : Math.exp(-i / 40) * 20) + 
+                            (Math.random() * 2 - 1);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            soundDescription.textContent = descriptionText;
+            spectrumChart.data.datasets[1].data = simulatedResponse.map(value => value * responseScaleSlider.value);
+            spectrumChart.update();
+        }
+
+        function updateResponseScale() {
+            scaleValueDisplay.textContent = responseScaleSlider.value;
+            updateSoundSource(); // 更新模拟音源频率响应
         }
 
         function drawHalfCircleField(dataArray) {
@@ -372,25 +378,8 @@
                 const y = 180 - Math.sin(angle) * radius;
                 halfCircleField.fillStyle = `rgba(57, 197, 187, 0.7)`;
                 halfCircleField.beginPath();
-                halfCircleField.arc(x, y, 4, 0, Math.PI * 2);
+                halfCircleField.arc(x, y, 6, 0, Math.PI * 2);
                 halfCircleField.fill();
-            }
-        }
-
-        function drawHalfCircleFieldUploaded(dataArray) {
-            halfCircleFieldUploaded.clearRect(0, 0, 400, 200);
-            const filteredData = lowFreqFilterCheckbox.checked ? applyLowFreqFilter(dataArray) : dataArray;
-
-            const particleCount = 50;
-            for (let i = 0; i < particleCount; i++) {
-                const angle = (Math.PI * i) / particleCount;
-                const radius = (uploadedDataArray[i] / 256) * 90 + 20;
-                const x = 200 + Math.cos(angle) * radius;
-                const y = 180 - Math.sin(angle) * radius;
-                halfCircleFieldUploaded.fillStyle = `rgba(255, 165, 0, 0.7)`; // 橙色
-                halfCircleFieldUploaded.beginPath();
-                halfCircleFieldUploaded.arc(x, y, 4, 0, Math.PI * 2);
-                halfCircleFieldUploaded.fill();
             }
         }
 
@@ -404,20 +393,6 @@
                     const value = filteredData[i * 10 + j];
                     squareField.fillStyle = `rgba(57, 197, 187, ${value / 256})`;
                     squareField.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
-                }
-            }
-        }
-
-        function drawSquareFieldUploaded(dataArray) {
-            squareFieldUploaded.clearRect(0, 0, 400, 400);
-            const filteredData = lowFreqFilterCheckbox.checked ? applyLowFreqFilter(dataArray) : dataArray;
-
-            const cellSize = 40;
-            for (let i = 0; i < 10; i++) {
-                for (let j = 0; j < 10; j++) {
-                    const value = uploadedDataArray[i * 10 + j];
-                    squareFieldUploaded.fillStyle = `rgba(255, 165, 0, ${value / 256})`; // 橙色
-                    squareFieldUploaded.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
                 }
             }
         }
@@ -437,32 +412,15 @@
             }
         }
 
-        function drawLinearHalfCircleFieldUploaded(dataArray) {
-            linearHalfCircleFieldUploaded.clearRect(0, 0, 400, 150);
-            const filteredData = lowFreqFilterCheckbox.checked ? applyLowFreqFilter(dataArray) : dataArray;
-
-            const barWidth = 10;
-            const maxBarHeight = 120;
-            for (let i = 0; i < bufferLength; i++) {
-                const barHeight = (uploadedDataArray[i] / 256) * maxBarHeight;
-                const x = (i * 4) + 10;
-                const y = 150 - barHeight;
-                linearHalfCircleFieldUploaded.fillStyle = `rgba(255, 165, 0, 0.8)`; // 橙色
-                linearHalfCircleFieldUploaded.fillRect(x, y, barWidth, barHeight);
-            }
-        }
-
         function updateCharts() {
             analyser.getByteFrequencyData(dataArray);
 
             const filteredData = lowFreqFilterCheckbox.checked ? applyLowFreqFilter(dataArray) : dataArray;
 
-            spectrumChart.data.datasets[0].data = filteredData.slice(0, 64); // 更新为新的bufferLength
-            spectrumChart.data.datasets[1].data = uploadedDataArray.slice(0, 64); // 更新上传音源数据
+            spectrumChart.data.datasets[0].data = filteredData.slice(0, 128);
             spectrumChart.update();
 
-            vuChart.data.datasets[0].data = [Math.max(...filteredData.slice(0, 32)), Math.max(...filteredData.slice(32, 64))]; // 更新为新的bufferLength
-            vuChart.data.datasets[1].data = [Math.max(...uploadedDataArray.slice(0, 32)), Math.max(...uploadedDataArray.slice(32, 64))]; // 更新上传音源电平
+            vuChart.data.datasets[0].data = [Math.max(...filteredData.slice(0, 64)), Math.max(...filteredData.slice(64, 128))];
             vuChart.update();
 
             const level = Math.max(...filteredData) / 256;
@@ -470,11 +428,8 @@
             document.getElementById('levelValue').textContent = `${Math.round(level * 100)}%`;
 
             drawHalfCircleField(filteredData);
-            drawHalfCircleFieldUploaded(uploadedDataArray);
             drawSquareField(filteredData);
-            drawSquareFieldUploaded(uploadedDataArray);
             drawLinearHalfCircleField(filteredData);
-            drawLinearHalfCircleFieldUploaded(uploadedDataArray);
 
             requestAnimationFrame(updateCharts);
         }
@@ -493,33 +448,86 @@
             let descriptionText = '';
             switch (chartId) {
                 case 'halfCircleField':
-                    descriptionText = '极坐标声场分布图展示了音频的空间分布，常用于分析声音的方向性和空间感。';
+                    descriptionText = `
+        【极坐标声场分布图】展示了音频的空间分布特点，常用于分析声音的方向性和空间感。<br>
+        - 【如何阅读】: 图中点的分布密集程度代表不同方向的声音能量。能量密集的区域显示声音较强，适合分析声音的扩散与集中趋势。<br>
+        - 【应用场景】: 
+        在剧场、礼堂等场所的声学设计中，用于优化声音传播路径，确保均匀的听觉体验。在城市公共空间中，帮助识别噪声来源，优化绿地或广场的空间布局，营造舒适的声景环境。<br>
+        <div class="reference">【参考文献】:<br>
+        1. Kang J, Aletta F, Gjestland T T, et al. *Ten questions on the soundscapes of the built environment*. Build Environ, 2016, 108: 284–294. (建筑环境声景的十个问题)<br>
+        2. Zhang Y, Kang J, Kang J. *Effects of soundscape on the environmental restoration in urban natural environments*. Noise Health, 2017, 19: 65–72. (声景对城市自然环境恢复效应的影响)<br>
+        3. Ge J, Lu J, Morotomi K, et al. *Developing soundscapegraphy for the notation of urban soundscape*. Acta Acust United Acust, 2009, 95: 65–75. (为城市声景开发声景图学)<br>
+        4. Zhang G, Zhang Y, Guo H C. *Experimental research on influencing factors of urban street traffic acoustic annoyance based on VR experience*. Int Congr Sound Vib, 2019. (基于VR体验的城市街道交通噪声干扰影响因素实验研究)
+        </div>
+        `;
                     break;
-                case 'halfCircleFieldUploaded':
-                    descriptionText = '上传音源极坐标声场分布图展示了上传音源的空间分布，便于与麦克风音源进行对比。';
-                    break;
+
                 case 'squareField':
-                    descriptionText = '网格化声场分布图用于模拟声学空间的热力图，分析频率强度的分布。';
+                    descriptionText = `
+        【网格化声场分布图】模拟了声学空间的热力图，直观展示了频率强度在二维空间的分布。<br>
+        - 【如何阅读】: 网格中的颜色代表声能量强弱，红色表示高能量区域，蓝色表示低能量区域。此图表适合识别声音能量的集中与扩散区域。<br>
+        - 【应用场景】: 
+        用于室内声学设计，如办公空间、教室或医院的吸声材料布置优化。也常用于城市噪声管理，通过绘制噪声热力图识别高噪声区域，为交通规划提供依据。<br>
+        <div class="reference">【参考文献】:<br>
+        1. Kang J, Schulte-Fortkamp B. *Soundscape and the Built Environment*. Boca Raton: CRC Press, 2015. (声景与建筑环境)<br>
+        2. Zhang Y, Kang J, Jin H. *Study on restorative benefits of public open space in high-density city*. Archit J, 2015, 13: 152–157. (高密度城市中公共开放空间恢复效益的研究)<br>
+        3. Aletta F, Kang J. *Soundscape approach integrating noise mapping techniques: A case study in Brighton, UK*. Noise Mapp, 2015, 2: 1–12. (结合噪声映射技术的声景方法：以英国布莱顿为例)<br>
+        4. Yang X, Zhang Y, Guo S. *Investigation and study on the influence of high-density urban traffic noise on the acoustic environment of urban parks*. Int Congr Acoust, 2019. (高密度城市交通噪声对城市公园声环境的影响研究)
+        </div>
+        `;
                     break;
-                case 'squareFieldUploaded':
-                    descriptionText = '上传音源网格化声场分布图展示了上传音源的频率强度分布，便于与麦克风音源进行对比。';
-                    break;
+
                 case 'linearHalfCircleField':
-                    descriptionText = '频谱线性分布图帮助理解声音频率的变化，适用于频率响应的分析。';
+                    descriptionText = `
+        【频谱线性分布图】通过线性方式展示音频在不同频率上的能量分布，适用于分析频率响应和声音特性。<br>
+        - 【如何阅读】: X轴表示频率，Y轴表示声音能量强度。曲线的峰值和形态可以帮助判断哪些频率的声音占主导。<br>
+        - 【应用场景】: 
+        在建筑材料的声学性能研究中，用于评估墙体或窗户材料对不同频率声音的吸声效果。在城市开放空间设计中，分析自然声（如鸟鸣或水声）的频率特性以提升声景质量。<br>
+        <div class="reference">【参考文献】:<br>
+        1. Zhang Y. *Research on the restorative effects of soundscape in urban public open space*. Doctor Dissertation, Harbin Institute of Technology, 2016. (城市公共开放空间声景恢复效应研究)<br>
+        2. Li Z, Kang J. *Sensitivity analysis of changes in human physiological indicators observed in soundscapes*. Landsc Urban Plan, 2019, 190: 103593. (基于声景观察的人体生理指标变化敏感性分析)<br>
+        3. Hietanen J K, Klemettilä T, Kettunen J E, et al. *What is a nice smile like that doing in a place like this? Automatic affective responses to environments influence the recognition of facial expressions*. Psychol Res, 2007, 71: 539–552. (环境自动情感反应如何影响面部表情识别)<br>
+        4. Zhang Y, Kang J, Jin H. *An experimental study on the restorative experience of typical urban soundscape based on EDA*. Int Congr Sound Vib, 2015. (基于EDA的典型城市声景恢复体验实验研究)
+        </div>
+        `;
                     break;
-                case 'linearHalfCircleFieldUploaded':
-                    descriptionText = '上传音源频谱线性分布图展示了上传音源的频率变化，便于与麦克风音源进行对比。';
-                    break;
+
                 case 'spectrumChart':
-                    descriptionText = '频率响应图展示了不同频率的能量分布，常用于音频处理和调音。';
+                    descriptionText = `
+        【频率响应图】详细展示了音频在整个频率范围内的能量分布，是音频分析的核心工具之一。<br>
+        - 【如何阅读】: 曲线的高低反映了声音的频谱特性，频率较高或较低时的衰减程度可以指示音源的质量或环境特性。<br>
+        - 【应用场景】: 
+        在声音设备的调试中，用于分析音响或耳机的频率响应性能。在环境噪声治理中，利用频率响应图识别特定噪声源的频谱特征，从而设计更有效的降噪方案。<br>
+        <div class="reference">【参考文献】:<br>
+        1. Zhang R, Zhu L, Zhang Y. *Investigation on the restorative effects of soundscape in parks in high-density cities*. Int Congr Acoust, 2019. (高密度城市公园声景恢复效应调查)<br>
+        2. Zhang Y, Kang J. *Effects of soundscape on the environmental restoration in urban natural environments*. Noise Health, 2017, 19: 65–72. (声景对城市自然环境恢复效应的影响)<br>
+        3. Aletta F, Oberman T, Kang J. *Associations between positive health-related effects and soundscapes perceptual constructs: A systematic review*. Int J Environ Res Public Health, 2018, 15: 2392. (声景感知结构与健康效应的系统评价)<br>
+        4. Irwin A, Hall D A, Peters A, et al. *Listening to urban soundscapes: Physiological validity of perceptual dimensions*. Psychophysiology, 2011, 48: 258–268. (聆听城市声景：感知维度的生理学有效性)
+        </div>
+        `;
                     break;
+
                 case 'vuChart':
-                    descriptionText = '音频电平表用于显示音频的电平强度，广泛应用于音频设备调试和声音监控。';
+                    descriptionText = `
+        【音频电平表】实时显示音频信号的电平变化，适合监控和动态调节音频输出强度。<br>
+        - 【如何阅读】: 条形图显示左右声道的音频电平，条高表示电平强度。此图可用于判断音频的平衡性和动态范围。<br>
+        - 【应用场景】: 
+        广泛用于广播、录音棚和现场演出中，监控音频信号以保证输出质量。在环境声学测量中，用于分析特定空间中的动态声压变化，支持声景规划与优化。<br>
+        <div class="reference">【参考文献】:<br>
+        1. Kang J. *Urban Sound Environment*. London: CRC Press, 2006. (城市声音环境)<br>
+        2. Zhang L, Ma H. *Effects of environment noise on children’s short-term memory and attention stability*. Acta Acust, 2018, 43: 246–252. (环境噪声对儿童短期记忆和注意力稳定性的影响)<br>
+        3. Xie H, Kang J, Mills G H. *Sound power levels of typical medical equipment in intensive care units*. Acta Acust United Acust, 2012, 98: 651–658. (重症监护病房典型医疗设备的声功率级)<br>
+        4. Aletta F, Kang J. *Soundscape descriptors and a conceptual framework for developing predictive soundscape models*. Landsc Urban Plan, 2016, 149: 65–74. (声景描述符及预测声景模型的概念框架)
+        </div>
+        `;
                     break;
+
                 default:
-                    descriptionText = '请选择一个图表进行查看。';
+                    descriptionText = `
+        **请选择一个图表进行查看，了解其含义及实际应用。**
+        `;
             }
-            document.getElementById('chartDescription').textContent = descriptionText;
+            document.getElementById('chartDescription').innerHTML = descriptionText; // 使用innerHTML以支持HTML标签
         }
 
         startMicrophone()
